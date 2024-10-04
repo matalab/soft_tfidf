@@ -16,7 +16,14 @@ from collections import Counter, namedtuple
 import numpy as np
 import scipy.sparse as sp
 from cachetools import LRUCache
-from jellyfish import jaro_winkler_similarity
+#from jellyfish import jaro_winkler_similarity # Slow in new jellyfish implementation
+"""
+Rapidfuzz replacement for jellyfish
+https://github.com/rapidfuzz/JaroWinkler
+pip install jarowinkler
+"""
+from jarowinkler import jarowinkler_similarity as jaro_winkler_similarity # Rapidfuzz efficient replacement for Jellyfish
+
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 from sklearn.preprocessing import normalize
