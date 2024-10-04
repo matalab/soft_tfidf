@@ -16,7 +16,7 @@ from collections import Counter, namedtuple
 import numpy as np
 import scipy.sparse as sp
 from cachetools import LRUCache
-from jellyfish import jaro_winkler
+from jellyfish import jaro_winkler_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 from sklearn.preprocessing import normalize
@@ -203,7 +203,7 @@ class SoftTfidf(object):
         y_alt = {}
         for x_ix, s_token in enumerate(x_bag):
             for y_ix, t_token in enumerate(y_bag):
-                dist = jaro_winkler(s_token, t_token)
+                dist = jaro_winkler_similarity(s_token, t_token)
                 if dist >= threshold:
                     sim_pairs.append(self.similar(x_ix, y_ix, dist))
                     x_alt[x_bag[x_ix]] = y_bag[y_ix]
@@ -271,7 +271,7 @@ class SemiSoftTfidf(object):
         idx = self._closest_lexicographic_idx(term)
         windowed_terms = self.sorted_terms[
             max(idx-self.window, self._min_idx): min(idx+self.window, self._max_idx)]
-        return sorted([(jaro_winkler(t, term), t) for t in windowed_terms], reverse=True)
+        return sorted([(jaro_winkler_similarity(t, term), t) for t in windowed_terms], reverse=True)
 
     def _break_tie(self, terms):
         """
