@@ -40,9 +40,9 @@ VECTORIZER_ARGS = {
 
 class SoftTfidf(object):
     """
+    Taken from: https://github.com/potatochip/soft_tfidf/blob/master/soft_tfidf.py
     Based off the original metric by C_ohen. Returns the similarity of two strings
     using a combination of tfidf and jaro-winkler
-
     Args:
         corpus (list of str): a list of each document for tfidf weighting
         verbose (bool, default True): for logging. not used in this implementation
@@ -85,14 +85,21 @@ class SoftTfidf(object):
 
     def _build_dict(self):
         """creates a dictionary lookup of the tfidf weights assigned to each document"""
-        corpus = [self._sorted_terms(i) for i in self.corpus]
+        corpus = [self._sorted_terms(i) for i in self.corpus if i.strip()]  # Skip empty documents
+        if not corpus:
+            raise ValueError("All documents in the corpus are empty.")
+        
         self.vectorizer = TfidfVectorizer(**VECTORIZER_ARGS)
         matrix = self.vectorizer.fit_transform(corpus)
         self.vocabulary = self.vectorizer.vocabulary_
-
+        
         for ix, doc in enumerate(corpus):
             weight_vector = [self._token_weight(matrix, ix, word) for word in doc.split()]
-            self.tfidf_dict[doc] = self._normalize_list(weight_vector)
+            if weight_vector:
+                self.tfidf_dict[doc] = self._normalize_list(weight_vector)
+            else:
+                self.tfidf_dict[doc] = []  # Empty weight vector for empty documents
+
 
     def _token_weight(self, matrix, ix, word):
         """retrieves the tfidf token weight for a token in a document"""
@@ -105,7 +112,8 @@ class SoftTfidf(object):
         allows us to retrieve from the tfidf_dict multiple versions of the same document
         regarldess of token ordering
         """
-        return sorted(unicode(x).split())
+        #return sorted(unicode(x).split())
+        return sorted(x.split())
 
     @classmethod
     def _sorted_terms(cls, x):
@@ -114,7 +122,6 @@ class SoftTfidf(object):
 
     def similarity(self, x, y, threshold=0.95):
         """returns the similarity between two strings
-
         Args:
             x (unicode): the first string to be compared
             y (unicode): the second string to be compared
@@ -157,6 +164,8 @@ class SoftTfidf(object):
     @staticmethod
     def _normalize_list(l):
         """normalizes a list to unit norm"""
+        if not l:
+            return []
         return normalize(np.array(l).reshape(1, -1), copy=False)[0]
 
     def _get_idf_vector(self, tokens, raw_tokens):
@@ -239,7 +248,6 @@ class SoftTfidf(object):
 
 class SemiSoftTfidf(object):
     """Attempt to apply Cohen's concept to information retrieval
-
     Args:
         corpus (list of str): a list of each document for retrieval
         threshold (float, default 0.9): the threshold at which two tokens
@@ -315,16 +323,15 @@ class SemiSoftTfidf(object):
 
     def retrieve(self, query, best_matches=False):
         """retrieves the most similar document in the corpus to the query
-
         Args:
             query (unicode): the document in the corpus we are looking for
             best_matches (bool, default False): whether to return 5 of the best
                 matches instead of just the top one
-
         Returns:
             unicode: the string that is closest to the query
         """
-        query = unicode(query)
+        #query = unicode(query)
+        
         t_bag = query.split()
         sims, terms = zip(*[self._best_match(t) for t in t_bag])
         transformed = self.vectorizer.transform([' '.join(terms)])
@@ -338,4 +345,4 @@ class SemiSoftTfidf(object):
             closest_idx = reversed(partial_sort_indexes[-5:])
             return operator.itemgetter(*closest_idx)(self.corpus)
         closest_idx = np.argmax(cos_sim)
-        return self.corpus[closest_idx]
+        return self.corpus[closest_idx]      
